@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clean Timer</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* 全域設定 */
+    * {
+      box-sizing: border-box;
+      user-select: none; /* 防止一直選取到文字 */
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* 關鍵：背景透明 */
+      background-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      width: 100%;
+    }
+
+    /* 時間顯示區 (也是輸入區) */
+    .time-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+      /* 使用等寬字體，數字才不會跳來跳去 */
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 600; /* 稍微粗一點點 */
+      color: #37352f; /* Notion 黑 */
+    }
+
+    /* 隱藏輸入框原本的樣子，讓它看起來像純文字 */
+    .time-wrapper input {
+      background: transparent;
+      border: none;
+      font-size: 4.5rem; /* 超大字體 */
+      width: 2ch; /* 寬度固定為2個字元 */
+      text-align: center;
+      font-family: inherit; /* 繼承上面的等寬字體 */
+      font-weight: inherit;
+      color: inherit;
+      padding: 0;
+      outline: none;
+      cursor: text;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    /* 滑鼠移過去時，給一點點提示 */
+    .time-wrapper input:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    /* 輸入時的樣子 */
+    .time-wrapper input:focus {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* 禁用時 (開始計時後) */
+    .time-wrapper input:disabled {
+      cursor: default;
+      opacity: 1; /* 保持清晰 */
+      background: transparent;
+    }
+
+    /* 冒號分隔符 */
+    .separator {
+      font-size: 4rem;
+      margin: 0 5px;
+      padding-bottom: 10px; /* 微調對齊 */
+    }
+
+    /* 按鈕區域 */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    button {
+      background: white;
+      border: 1px solid #e1e1e1;
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #555;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    button:hover {
+      background: #f7f7f7;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      color: #333;
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button i {
+      margin-right: 8px;
+      opacity: 0.95;
+    }
+
+    /* Start/Pause：舒服的低對比綠/紅 */
+    #startPauseBtn.is-start {
+      background: #f3fbf6;        /* 很淡的綠底 */
+      border-color: #cfe9d7;      /* 柔和綠邊 */
+      color: #2f6f4e;             /* 深綠字 */
+      font-weight: 600;
+    }
+
+    #startPauseBtn.is-start:hover {
+      background: #eaf7f0;
+      border-color: #bfe0cb;
+    }
+
+    #startPauseBtn.is-pause {
+      background: #fff3f4;        /* 很淡的紅底 */
+      border-color: #f2c6c9;      /* 柔和紅邊 */
+      color: #8a2f3a;             /* 深紅字 */
+      font-weight: 600;
+    }
+
+    #startPauseBtn.is-pause:hover {
+      background: #ffe9eb;
+      border-color: #eeb7bd;
+    }
+
+    /* Done 狀態（中性灰，避免太跳） */
+    #startPauseBtn.is-done {
+      background: #f6f6f6;
+      border-color: #e6e6e6;
+      color: #666;
+      font-weight: 600;
+      cursor: default;
+    }
+
+    /* --- Modal (確認視窗) --- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8); /* 半透明白底 */
+      backdrop-filter: blur(2px); /* 模糊背景 */
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      animation: fadeIn 0.2s;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      padding: 25px 40px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border: 1px solid #eee;
+    }
+
+    .modal h3 {
+      margin: 0 0 20px 0;
+      font-size: 1.1rem;
+      font-weight: normal;
+      color: #333;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-danger {
+      color: #a53b44;
+      border-color: #f2c6c9;
+      background: #fff3f4;
+      font-weight: 600;
+    }
+
+    .btn-danger:hover {
+      background: #ffe9eb;
+    }
+
+    /* 去掉輸入框的上下箭頭 (Chrome/Safari) */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    /* 去掉輸入框的上下箭頭 (Firefox) */
+    /* input[type=number] {
+      -moz-appearance: textfield;
+    } */
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="time-wrapper">
+      <input type="number" id="hours" min="0" max="99" value="00" onfocus="this.select()">
+      <span class="separator">:</span>
+      <input type="number" id="minutes" min="0" max="59" value="05" onfocus="this.select()">
+      <span class="separator">:</span>
+      <input type="number" id="seconds" min="0" max="59" value="00" onfocus="this.select()">
+    </div>
+
+    <div class="controls">
+      <button id="startPauseBtn" class="is-start">
+        <i class="fa-solid fa-play"></i>
+        <span>Start</span>
+      </button>
+
+      <button id="resetBtn">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Reset</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>重置計時器？</h3>
+      <div class="modal-buttons">
+        <button class="btn-danger" id="confirmReset">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>確定</span>
+        </button>
+        <button id="cancelReset">
+          <i class="fa-solid fa-xmark"></i>
+          <span>取消</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const hoursInput = document.getElementById('hours');
+    const minutesInput = document.getElementById('minutes');
+    const secondsInput = document.getElementById('seconds');
+    const inputs = [hoursInput, minutesInput, secondsInput];
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const confirmReset = document.getElementById('confirmReset');
+    const cancelReset = document.getElementById('cancelReset');
+
+    let totalSeconds = 0;
+    let timerId = null;
+    let isRunning = false;
+
+    function setStartPauseUI(state) {
+      // state: 'start' | 'pause' | 'done'
+      startPauseBtn.classList.remove('is-start', 'is-pause', 'is-done');
+      startPauseBtn.classList.add(`is-${state}`);
+
+      const icon = startPauseBtn.querySelector('i');
+      const label = startPauseBtn.querySelector('span');
+
+      if (state === 'start') {
+        icon.className = 'fa-solid fa-play';
+        label.textContent = 'Start';
+        startPauseBtn.disabled = false;
+      } else if (state === 'pause') {
+        icon.className = 'fa-solid fa-pause';
+        label.textContent = 'Pause';
+        startPauseBtn.disabled = false;
+      } else if (state === 'done') {
+        icon.className = 'fa-solid fa-check';
+        label.textContent = 'Done';
+        startPauseBtn.disabled = true; // Done 就不讓按，避免狀態怪掉
+      }
+    }
+
+    // 補零函數 (讓 5 變成 05)
+    function pad(num) {
+      return num.toString().padStart(2, '0');
+    }
+
+    // 格式化顯示 (同步更新輸入框的值)
+    function updateDisplay(h, m, s) {
+      hoursInput.value = pad(h);
+      minutesInput.value = pad(m);
+      secondsInput.value = pad(s);
+    }
+
+    // 從輸入框取得總秒數
+    function getInputTime() {
+      const h = parseInt(hoursInput.value) || 0;
+      const m = parseInt(minutesInput.value) || 0;
+      const s = parseInt(secondsInput.value) || 0;
+      return h * 3600 + m * 60 + s;
+    }
+
+    // 鎖定或解鎖輸入框
+    function setInputsDisabled(disabled) {
+      inputs.forEach(input => input.disabled = disabled);
+    }
+
+    // 當輸入框改變時，自動補零 (失去焦點時)
+    inputs.forEach(input => {
+      input.addEventListener('change', function() {
+        let val = parseInt(this.value);
+        if (isNaN(val) || val < 0) val = 0;
+        // 分鐘和秒數不能超過 59 (雖然 HTML 有 min/max，但手打還是要防呆)
+        if (this.id !== 'hours' && val > 59) val = 59;
+        this.value = pad(val);
+      });
+
+      // 按 Enter 鍵自動開始
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          startPauseBtn.click();
+          startPauseBtn.focus(); // 移除焦點，避免繼續輸入
+        }
+      });
+    });
+
+    function start() {
+      // 如果還沒開始跑，先讀取當前輸入的時間
+      if (!isRunning && !timerId) {
+        totalSeconds = getInputTime();
+      }
+
+      if (totalSeconds <= 0) return;
+
+      isRunning = true;
+      setStartPauseUI('pause');
+      setInputsDisabled(true); // 鎖定輸入
+
+      timerId = setInterval(() => {
+        if (totalSeconds > 0) {
+          totalSeconds--;
+
+          const h = Math.floor(totalSeconds / 3600);
+          const m = Math.floor((totalSeconds % 3600) / 60);
+          const s = totalSeconds % 60;
+          updateDisplay(h, m, s);
+        } else {
+          // 時間到
+          pause();
+          setStartPauseUI('done');
+          alert('時間到！🍅');
+        }
+      }, 1000);
+    }
+
+    function pause() {
+      isRunning = false;
+      setStartPauseUI('start');
+      clearInterval(timerId);
+      timerId = null;
+    }
+
+    function reset() {
+      pause();
+      updateDisplay(0, 5, 0);
+      setInputsDisabled(false);
+      setStartPauseUI('start');
+    }
+
+    // 按鈕監聽
+    startPauseBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pause();
+      } else {
+        start();
+      }
+    });
+
+    // Modal 邏輯
+    resetBtn.addEventListener('click', () => {
+      // 只有在運作中或有時間時才需要確認
+      if (timerId || getInputTime() > 0) {
+        modalOverlay.classList.add('show');
+      } else {
+        reset(); // 已經是歸零狀態就直接重置
+      }
+    });
+
+    confirmReset.addEventListener('click', () => {
+      modalOverlay.classList.remove('show');
+      reset();
+    });
+
+    cancelReset.addEventListener('click', () => {
+      modalOverlay.classList.remove('show');
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('show');
+      }
+    });
+
+    // 初始化一次格式
+    updateDisplay(0, 5, 0);
+    setStartPauseUI('start');
+  </script>
+</body>
+</html>
