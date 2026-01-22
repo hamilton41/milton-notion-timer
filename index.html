@@ -74,9 +74,10 @@
 
     /* 禁用時 (開始計時後) */
     .time-wrapper input:disabled {
-      cursor: default;
+      cursor: not-allowed;
       opacity: 1; /* 保持清晰 */
       background: transparent;
+      pointer-events: none; /* 讓點擊穿透到 wrapper */
     }
 
     /* 冒號分隔符 */
@@ -254,6 +255,54 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+
+    /* 搖晃動畫 - 點擊鎖定的輸入框時 */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .shake {
+      animation: shake 0.4s ease;
+    }
+
+    /* 彩蛋容器 */
+    #confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 99;
+      overflow: hidden;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -10px;
+      opacity: 1;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      animation: confetti-fall linear forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg) scale(0.9);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -315,6 +364,9 @@
   <audio id="doneSound" loop>
     <source src="new-notification-026-380249.mp3" type="audio/mpeg">
   </audio>
+
+  <!-- 彩蛋容器 -->
+  <div id="confetti-container"></div>
 
   <script>
     const startPauseBtn = document.getElementById('startPauseBtn');
@@ -401,6 +453,18 @@
           startPauseBtn.focus(); // 移除焦點，避免繼續輸入
         }
       });
+
+    });
+
+    // 點擊鎖定的輸入框時搖晃（監聽整個 wrapper）
+    const timeWrapper = document.querySelector('.time-wrapper');
+    timeWrapper.addEventListener('click', function(e) {
+      // 如果輸入框是鎖定狀態，就搖晃
+      if (hoursInput.disabled) {
+        this.classList.remove('shake');
+        void this.offsetWidth; // 觸發 reflow，讓動畫可以重複播放
+        this.classList.add('shake');
+      }
     });
 
     function start() {
@@ -427,10 +491,11 @@
           // 時間到
           pause();
           setStartPauseUI('done');
-          // 顯示完成 Modal 並播放音樂
+          // 顯示完成 Modal、播放音樂、撒彩蛋
           doneModalOverlay.classList.add('show');
           doneSound.currentTime = 0;
           doneSound.play();
+          startConfetti();
         }
       }, 1000);
     }
@@ -483,6 +548,42 @@
       }
     });
 
+    // 彩蛋相關
+    const confettiContainer = document.getElementById('confetti-container');
+    const confettiColors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#1dd1a1'];
+    const confettiShapes = ['●', '■', '▲', '★', '♦', '❤'];
+    let confettiInterval = null;
+
+    function createConfetti() {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + 'vw';
+      confetti.style.fontSize = (Math.random() * 15 + 10) + 'px';
+      confetti.style.color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+      confetti.style.animationDuration = (Math.random() * 2 + 3) + 's';
+      confetti.textContent = confettiShapes[Math.floor(Math.random() * confettiShapes.length)];
+      confettiContainer.appendChild(confetti);
+
+      // 動畫結束後移除
+      confetti.addEventListener('animationend', () => confetti.remove());
+    }
+
+    function startConfetti() {
+      // 先撒一波
+      for (let i = 0; i < 30; i++) {
+        setTimeout(createConfetti, i * 50);
+      }
+      // 持續撒
+      confettiInterval = setInterval(createConfetti, 80);
+    }
+
+    function stopConfetti() {
+      clearInterval(confettiInterval);
+      confettiInterval = null;
+      // 清空剩餘彩蛋
+      confettiContainer.innerHTML = '';
+    }
+
     // 音樂淡出函數
     function fadeOutAudio(audio, duration = 1000) {
       const startVolume = audio.volume;
@@ -507,6 +608,7 @@
     doneConfirm.addEventListener('click', () => {
       doneModalOverlay.classList.remove('show');
       fadeOutAudio(doneSound, 1000); // 1 秒淡出
+      stopConfetti();
       reset();
     });
 
