@@ -87,7 +87,7 @@
 
         .adventure-card {
             background-color: var(--ui-bg);
-            padding: 36px 28px;
+            padding: 0px 28px;
             text-align: center;
             position: relative;
             min-width: 260px; /* 稍微加寬以容納中文 */
@@ -101,11 +101,12 @@
         }
 
         .hud-hearts {
+            display: none;
             position: absolute;
             top: -23px;
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
+            /* display: flex; */
             gap: 4px;
             background: transparent;
             align-items: center;
