@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Circle Clock</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 色系取自 pixel-round-clock：薩爾達/大地金色調 */
+            --bg-color: #eaddcf;        /* 羊皮紙底 */
+            --bg-grid: rgba(0, 0, 0, 0.04);
+            --clock-face: #eaddcf;      /* 淺米白面盤 */
+            --clock-border: #6d4e27;    /* 深木框 */
+            --accent-gold: #d8a638;     /* 金色高光 */
+            --hand-dark: #2b2b2b;       /* 指針深色 */
+            --second-hand: #666666;     /* 淺灰秒針 */
+            --text-dark: #2b2b2b;
+            --scale: 0.6;               /* 等比例縮小係數 */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+            background-image: none;
+            background-size: 14px 14px;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+            image-rendering: pixelated;
+        }
+
+        .stage {
+            transform: scale(var(--scale));
+            transform-origin: center;
+        }
+
+        /* 時鐘主體 */
+        .clock {
+            width: 250px;
+            height: 250px;
+            background-color: var(--clock-face);
+            border-radius: 50%;
+            position: relative;
+            image-rendering: pixelated;
+            /* 像素化多層框線 */
+            box-shadow: 
+                0 0 0 4px var(--accent-gold),
+                0 0 0 8px #c08c2f,
+                0 0 0 12px var(--clock-border),
+                8px 8px 0 rgba(0,0,0,0.25);
+        }
+
+        /* 鐘面刻度裝飾 (十字線) */
+        .clock::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 65%;
+            height: 65%;
+            transform: translate(-50%, -50%);
+            background: 
+                linear-gradient(var(--clock-border) 2px, transparent 2px),
+                linear-gradient(90deg, var(--clock-border) 2px, transparent 2px);
+            background-position: center;
+            background-size: 100% 2px, 2px 100%;
+            background-repeat: no-repeat;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        /* 小時刻度 */
+        .ticks {
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .tick-hour {
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            width: 3px;
+            height: 8px;
+            margin-left: -1.5px;
+            background: rgba(17, 17, 17, 0.10);
+            transform-origin: center 120px;
+            image-rendering: pixelated;
+        }
+
+        /* 數字刻度 */
+        .number {
+            position: absolute;
+            color: var(--clock-border);
+            font-size: 26px; /* 縮小後略放大字體以保持可讀性 */
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+            /* 稍微修正像素字體的位置偏移 */
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+        }
+
+        .n12 { top: 15px; left: 48%; transform: translateX(-50%); }
+        .n3  { right: 15px; top: 50%; transform: translateY(-50%); }
+        .n6  { bottom: 15px; left: 51%; transform: translateX(-50%); }
+        .n9  { left: 15px; top: 50%; transform: translateY(-50%); }
+
+
+        /* 指針的共同設定 */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center; /* 設定旋轉中心點在底部 */
+            background-color: var(--hand-dark);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            transition: transform 0.1s cubic-bezier(0.4, 2.5, 0.7, 0.7); /* 加入一點點彈跳感 */
+        }
+
+        /* 時針 */
+        .hour {
+            width: 6px;
+            height: 60px;
+            margin-left: -3px; /* 居中校正 (寬度的一半) */
+            background-color: var(--clock-border);
+            border: 2px solid var(--accent-gold);
+            z-index: 2;
+        }
+
+        /* 分針 */
+        .minute {
+            width: 4px;
+            height: 90px;
+            margin-left: -2px;
+            background: #444444;
+            border: 2px solid var(--accent-gold);
+            z-index: 3;
+        }
+
+        /* 秒針 */
+        .second {
+            width: 4px;
+            height: 100px;
+            margin-left: -2px;
+            background-color: var(--second-hand);
+            z-index: 4;
+            /* 秒針不需要彈跳，要乾脆的跳動 */
+            transition: transform 0.05s steps(1); 
+        }
+
+        /* 中心點裝飾蓋 */
+        .center-nut {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            background-color: var(--accent-gold);
+            border: 3px solid var(--clock-border);
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="stage">
+        <div class="clock">
+            <div class="ticks" id="hourTicks"></div>
+            <div class="number n12">12</div>
+            <div class="number n3">3</div>
+            <div class="number n6">6</div>
+            <div class="number n9">9</div>
+
+            <div class="hand hour" id="hour-hand"></div>
+            <div class="hand minute" id="minute-hand"></div>
+            <div class="hand second" id="second-hand"></div>
+            
+            <div class="center-nut"></div>
+        </div>
+    </div>
+
+    <script>
+        const hourHand = document.getElementById('hour-hand');
+        const minuteHand = document.getElementById('minute-hand');
+        const secondHand = document.getElementById('second-hand');
+        const hourTicks = document.getElementById('hourTicks');
+
+        // 建立 12 個小時刻度
+        function buildHourTicks() {
+            hourTicks.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'tick-hour';
+                tick.style.transform = `rotate(${i * 30}deg)`;
+                hourTicks.appendChild(tick);
+            }
+        }
+
+        function setClock() {
+            const now = new Date();
+
+            // 取得時間
+            const seconds = now.getSeconds();
+            const minutes = now.getMinutes();
+            const hours = now.getHours();
+
+            // 計算角度
+            // 秒針：每秒走 6度 (360/60)
+            const secondsDegrees = ((seconds / 60) * 360);
+            
+            // 分針：每分走 6度，並加上秒數帶來的微幅移動 (讓分針平滑一點，也可去掉後面那項讓它一分鐘跳一次)
+            const minutesDegrees = ((minutes / 60) * 360) + ((seconds/60)*6);
+            
+            // 時針：每小時走 30度 (360/12)，加上分鐘帶來的移動
+            const hoursDegrees = ((hours % 12) / 12 * 360) + ((minutes / 60) * 30);
+
+            // 應用旋轉樣式
+            // 這裡加上 90deg 的修正，因為 CSS 預設 0度是指向右邊(3點鐘方向)，而我們指針起始是向上(12點鐘方向)
+            secondHand.style.transform = `rotate(${secondsDegrees}deg)`;
+            minuteHand.style.transform = `rotate(${minutesDegrees}deg)`;
+            hourHand.style.transform = `rotate(${hoursDegrees}deg)`;
+        }
+
+        // 首次執行
+        buildHourTicks();
+        setClock();
+        // 每秒更新一次
+        setInterval(setClock, 1000);
+
+    </script>
+
+</body>
+</html>
