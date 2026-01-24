@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zelda Pixel Calendar</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #2d5a27;
+            --ui-bg: #eaddcf;
+            --ui-border: #6d4e27;
+            --ui-accent: #d8a638;
+            --text-color: #2b2b2b;
+            --heart-color: #c02c2c;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            background-color: transparent;
+            
+            /* 2. 設定字體順序：英文像素 -> 中文像素 -> 備用黑體 */
+            font-family: 'Press Start 2P', 'DotGothic16', 'Noto Sans Mono SC', sans-serif;
+            
+            /* 3. 關鍵：關閉字體平滑 (Anti-aliasing) 讓像素點更銳利 */
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeSpeed; /* 優先速度，通常會減少柔化 */
+            
+            overflow: hidden;
+        }
+
+        .scene {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vine-strip {
+            position: absolute;
+            left: -50px;
+            top: -5%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            z-index: 2;
+            animation: float 3s ease-in-out infinite; /* 與日曆同步上下漂浮 */
+        }
+
+        .vine-strip img {
+            height: 114px;
+            image-rendering: pixelated;
+            transform: rotate(90deg);
+            transform-origin: center;
+        }
+
+        .bush {
+            position: absolute;
+            right: -32px;
+            bottom: -4px;
+            height: 77px;
+            image-rendering: pixelated;
+            pointer-events: none;
+            animation: float 3s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        .adventure-card {
+            background-color: var(--ui-bg);
+            padding: 36px 28px;
+            text-align: center;
+            position: relative;
+            min-width: 260px; /* 稍微加寬以容納中文 */
+            
+            box-shadow: 
+                0 0 0 4px var(--ui-accent),
+                0 0 0 8px var(--ui-border),
+                8px 8px 0 rgba(0,0,0,0.3);
+            
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .hud-hearts {
+            position: absolute;
+            top: -23px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            background: transparent;
+            align-items: center;
+        }
+
+        .heart {
+            width: 22px;
+            height: 22px;
+            image-rendering: pixelated;
+            filter: drop-shadow(2px 2px 0 #000);
+        }
+
+        .month {
+            display: none; /* 合併顯示後隱藏月份行 */
+        }
+
+        .date {
+            font-size: 48px;
+            color: var(--text-color);
+            margin: 10px 0 2px;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+            font-family: inherit; /* 與星期同字體 */
+        }
+
+        .weekday {
+            font-size: 27px; /* 接近 1/24 的 48px，但稍微小一點 */
+            /* background-color: var(--ui-border); */
+            color: #a9812a;
+            padding: 0px 14px;
+            display: inline-block;
+            /* box-shadow: 3px 3px 0 rgba(0,0,0,0.3); */
+            letter-spacing: 1px;
+            font-weight: 900;
+        }
+
+        /* 來自 pixel-round-clock 的數位時間樣式，色彩套用本日曆色票 */
+        .digital-time {
+            margin-top: 12px;
+            display: inline-block;
+            background: linear-gradient(135deg, var(--ui-bg), #d9c9b3);
+            border: 4px solid var(--ui-accent);
+            box-shadow:
+                0 0 0 3px var(--ui-border),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 18px;
+            color: var(--text-color);
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+            white-space: nowrap;
+            min-width: 140px;
+            animation: float 3s ease-in-out infinite; /* 與卡片相同的上下漂浮 */
+        }
+
+        .corner {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--ui-border);
+        }
+        .tl { top: 0; left: 0; }
+        .tr { top: 0; right: 0; }
+        .bl { bottom: 0; left: 0; }
+        .br { bottom: 0; right: 0; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scene">
+        <div class="vine-strip" aria-hidden="true">
+            <img src="./img/vine.png" alt="vine">
+        </div>
+        <div class="adventure-card">
+            <div class="hud-hearts">
+                <img class="heart" src="./img/heart.png" alt="heart">
+                <img class="heart" src="./img/heart.png" alt="heart">
+                <img class="heart" src="./img/heart.png" alt="heart">
+            </div>
+
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+
+            <div class="month" id="month-display">載入中...</div>
+            <div class="date" id="date-display">--</div>
+            <div class="weekday" id="weekday-display">Loading</div>
+        </div>
+        <img class="bush" src="./img/bush.png" alt="bush" aria-hidden="true">
+    </div>
+    <div class="digital-time" id="digital-time">00:00:00</div>
+
+    <script>
+        function updateDate() {
+            const now = new Date();
+
+            // 以「1月24」格式顯示
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            document.getElementById('date-display').innerText = `${month}/${day}`;
+
+            // 設定星期
+            const weekdayOptions = { weekday: 'long' };
+            document.getElementById('weekday-display').innerText = now.toLocaleDateString('zh-TW', weekdayOptions);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            let hour = now.getHours();
+            const minute = String(now.getMinutes()).padStart(2, '0');
+            const isPM = hour >= 12;
+            const period = isPM ? 'PM' : 'AM';
+            hour = hour % 12;
+            if (hour === 0) hour = 12; // 12 小時制
+            document.getElementById('digital-time').innerText = `${period} ${hour}:${minute}`;
+        }
+
+        updateDate();
+        updateClock();
+        setInterval(updateDate, 1000);
+        setInterval(updateClock, 1000);
+    </script>
+
+</body>
+</html>
