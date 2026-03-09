@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<head>
+    <title>沙發配送計算</title>
+    <meta charset="utf-8"/>
+    <link rel="icon" type="image/x-icon" href="https://www.mrliving.com.tw/media/favicon/stores/1/logo_7.jpg">
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.mrliving.com.tw/media/favicon/stores/1/logo_7.jpg">
+
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-resource.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-cookies.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-aria.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.2.1/angular-material.min.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.2.1/angular-material.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.5.6/ui-bootstrap-tpls.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-sanitize/1.8.2/angular-sanitize.min.js"></script>
+
+    <script type="text/javascript">
+        angular.module('myapp.services', []);
+        angular.module('myapp.directives', []);
+        angular.module('myapp.filters', []);
+        angular.module('myapp', ['myapp.services', 'myapp.controllers', 'myapp.directives', 'myapp.filters', 'ui.bootstrap']);
+    </script>
+</head>
+<body ng-app="myapp">
+    <div id="all" class="box">
+        <header class="container header">
+            <div class="mt-3"></div>
+            <div id="headerInner" class="row" role="banner">
+                <div class="col-5">
+                    <a class="logo navbar-btn pull-left" href="#" title="Home" rel="home">
+                        <img src="https://www.mrliving.com.tw/media/logo/stores/1/logo_340x40.png" alt="MR. LIVING" width="230">
+                    </a>
+                </div>
+            </div>
+            <div class="mb-3"></div>
+        </header>
+
+        <div id="content">
+            <div class="container content">
+
+<style>
+    .measure-circle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #ed0c88;
+        color: #fff;
+        font-weight: bold;
+        font-size: 14px;
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+    .measure-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .measure-row label {
+        color: #000;
+        margin-bottom: 0;
+        margin-right: 10px;
+        white-space: nowrap;
+    }
+    .measure-row input {
+        max-width: 150px;
+    }
+    .elevator-inputs {
+        position: relative;
+    }
+    .product-autocomplete {
+        position: relative;
+    }
+    .product-autocomplete .dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-top: none;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .product-autocomplete .dropdown-list .dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        color: #000;
+        font-size: 14px;
+    }
+    .product-autocomplete .dropdown-list .dropdown-item:hover {
+        background-color: #f0f0f0;
+    }
+    .elevator-img-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    .overlay-value {
+        position: absolute;
+        left: 0;
+        top: 0;
+        background-color: rgba(237, 12, 136, 0.8);
+        color: #fff;
+        font-weight: bold;
+        font-size: 13px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+    .dim-source-badge {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-left: 8px;
+    }
+</style>
+<script type="text/javascript">
+    var app = angular.module('myapp.controllers', []);
+    app.controller('sofaDeliveryCtrl', function ($scope, $http) {
+        $scope.elevator = {};
+        $scope.result = null;
+        $scope.selectedProduct = null;
+        $scope.productKeyword = '';
+        $scope.showDropdown = false;
+        $scope.filteredProducts = [];
+        $scope.searching = false;
+        $scope.dimSource = null;
+        $scope.sheetBoxCount = 0;
+
+        var blurTimeout = null;
+
+        var sheetDataMap = {};
+        var sheetNameMap = {};
+        var sheetLoaded = false;
+        var pendingKeyword = null;
+        var SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyF8YF1hRWwpPVOkvTTfe3BFpmyN-HdDkHrzkuL-KS5PZ6JT2WKg6YeRx72QODXT8GU8g/exec';
+        $http.get(SHEET_API_URL).then(function (response) {
+            var items = response.data.value || [];
+            items.forEach(function (item) {
+                if (!item.SKU) return;
+                var sku = item.SKU.trim();
+                sheetNameMap[sku] = item.Name || sku;
+                var result = parseSheetDims(item['倉庫回填(寬 高 深)']);
+                if (result) sheetDataMap[sku] = result;
+            });
+            sheetLoaded = true;
+            if (pendingKeyword) {
+                var kw = pendingKeyword;
+                pendingKeyword = null;
+                doSearch(kw);
+            }
+        });
+
+        $scope.searchNow = function () {
+            var keyword = ($scope.productKeyword || '').trim();
+            if (keyword.length === 0) return;
+            $scope.searching = true;
+            doSearch(keyword);
+        };
+
+        function doSearch(keyword) {
+            if (blurTimeout) { clearTimeout(blurTimeout); blurTimeout = null; }
+
+            if (!sheetLoaded) {
+                pendingKeyword = keyword;
+                return;
+            }
+
+            var kwLower = keyword.toLowerCase();
+            var sheetMatches = Object.keys(sheetNameMap)
+                .filter(function (sku) { return sku.toLowerCase().indexOf(kwLower) !== -1; })
+                .map(function (sku) { return { ItemCode: sku, ItemName: sheetNameMap[sku] }; });
+
+            $scope.searching = false;
+            $scope.searched = true;
+            $scope.filteredProducts = sheetMatches;
+            $scope.showDropdown = sheetMatches.length > 0;
+        }
+
+        $scope.onProductInputBlur = function () {
+            blurTimeout = setTimeout(function () {
+                $scope.$apply(function () { $scope.showDropdown = false; });
+                blurTimeout = null;
+            }, 250);
+        };
+
+        $scope.selectProduct = function (product) {
+            $scope.showDropdown = false;
+            $scope.productKeyword = product.ItemCode + ' - ' + product.ItemName;
+            $scope.selectedProduct = null;
+            $scope.dimSource = null;
+            $scope.sheetBoxCount = 0;
+            $scope.result = null;
+
+            var sheetData = sheetDataMap[product.ItemCode];
+            if (sheetData) {
+                $scope.selectedProduct = {
+                    sku: product.ItemCode,
+                    name: product.ItemName,
+                    specRaw: '',
+                    boxes: sheetData.boxes.map(function (b, i) {
+                        return { label: '箱 ' + (i + 1), length: b.D, width: b.W, height: b.H };
+                    })
+                };
+                $scope.dimSource = 'sheet';
+                $scope.sheetBoxCount = sheetData.boxCount;
+                return;
+            }
+
+            $scope.selectedProduct = {
+                sku: product.ItemCode,
+                name: product.ItemName,
+                specRaw: '',
+                boxes: [{ label: '箱 1', length: null, width: null, height: null }]
+            };
+            $scope.dimSource = 'none';
+        };
+
+        function parseSheetDims(dimStr) {
+            if (!dimStr || !dimStr.trim()) return null;
+            var lines = dimStr.trim().split('\n');
+            var boxes = [];
+            lines.forEach(function (line) {
+                var match = line.match(/([\d.]+)\s*\*\s*([\d.]+)\s*\*\s*([\d.]+)/);
+                if (match) {
+                    boxes.push({
+                        W: parseFloat(match[1]),
+                        H: parseFloat(match[2]),
+                        D: parseFloat(match[3])
+                    });
+                }
+            });
+            if (boxes.length === 0) return null;
+            return { boxes: boxes, boxCount: boxes.length };
+        }
+
+        $scope.clearProduct = function () {
+            $scope.selectedProduct = null;
+            $scope.productKeyword = '';
+            $scope.dimSource = null;
+            $scope.sheetBoxCount = 0;
+            $scope.result = null;
+            $scope.filteredProducts = [];
+            $scope.searched = false;
+        };
+
+        function getSortedDims(l, w, h) {
+            return [l, w, h].sort(function(a, b) { return a - b; });
+        }
+
+        function checkDoorFit(itemDims, doorW, doorH) {
+            var door = [doorW, doorH].sort(function(a, b) { return a - b; });
+            return { pass: (itemDims[0] <= door[0] && itemDims[1] <= door[1]) };
+        }
+
+        function checkBoxElevator(box, e) {
+            var dims = getSortedDims(box.length, box.width, box.height);
+
+            var doorCheck = checkDoorFit(dims, e.doorWidth, e.doorHeight);
+            if (!doorCheck.pass) {
+                return {
+                    canDeliver: false, method: 'DoorFail',
+                    resultMsg: '太寬或太厚，電梯門口不夠大，進不去（箱子 ' + dims[0] + 'x' + dims[1] + 'cm，門口 ' + e.doorWidth + 'x' + e.doorHeight + 'cm）'
+                };
+            }
+
+            if (dims[2] <= e.doorHeight) {
+                return {
+                    canDeliver: true, method: 'DoorHeight',
+                    resultMsg: '高度（' + dims[2] + 'cm）低於電梯門高（' + e.doorHeight + 'cm），可以正常搬進去'
+                };
+            }
+
+            var A = e.doorWidth;
+            var C = e.innerHeight;
+            var D = box.width;
+            var E = box.height;
+            var F = box.length;
+
+            var diag1 = Math.sqrt(E * E + D * D);
+            if (C > diag1) {
+                return {
+                    canDeliver: true, method: 'Tilt1',
+                    resultMsg: '比電梯門高，需要先平躺推進電梯，再在裡面立起來（電梯內高 ' + C + 'cm，立起來需要 ' + Math.round(diag1) + 'cm）'
+                };
+            }
+
+            var diag2 = Math.sqrt(F * F + D * D);
+            if (A > D && C > diag2) {
+                return {
+                    canDeliver: true, method: 'Tilt2',
+                    resultMsg: '比電梯門高，需要先平躺推進電梯，再換方向立起來（電梯內高 ' + C + 'cm，立起來需要 ' + Math.round(diag2) + 'cm）'
+                };
+            }
+
+            return {
+                canDeliver: false, method: 'Fail',
+                resultMsg: '比電梯門高，平躺推進去後電梯內部也不夠高，沒辦法立起來'
+            };
+        }
+
+        $scope.calculate = function () {
+            var e = $scope.elevator;
+            if (!e.doorWidth || !e.doorHeight || !e.innerWidth || !e.innerHeight || !e.innerDepth) {
+                $scope.result = { message: '請填寫所有電梯欄位', calculated: false };
+                return;
+            }
+            if (!$scope.selectedProduct) {
+                $scope.result = { message: '請先選擇商品', calculated: false };
+                return;
+            }
+            var boxes = $scope.selectedProduct.boxes;
+            if (!boxes || !boxes[0].length || !boxes[0].width || !boxes[0].height) {
+                $scope.result = { message: '此商品無法解析尺寸，請手動填入外箱尺寸後再計算', calculated: false };
+                return;
+            }
+
+            var boxResults = boxes.map(function (box) {
+                return angular.extend({ label: box.label }, checkBoxElevator(box, e));
+            });
+            var canDeliverAll = boxResults.every(function (r) { return r.canDeliver; });
+
+            $scope.result = {
+                calculated: true,
+                canDeliverAll: canDeliverAll,
+                boxResults: boxResults
+            };
+        };
+    });
+</script>
+
+<div ng-controller="sofaDeliveryCtrl" class="mt-4">
+    <div class="row">
+        <p class="subject">沙發配送計算</p>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="elevator-img-wrapper">
+                <img src="assets/imgs/電梯測量圖.jpg" class="img-fluid" alt="電梯測量圖">
+                <span class="overlay-value" ng-show="elevator.doorWidth"  style="left: 13%; top: 16%;">{{ elevator.doorWidth }} cm</span>
+                <span class="overlay-value" ng-show="elevator.doorHeight" style="left: 0; top: 71%;">{{ elevator.doorHeight }} cm</span>
+                <span class="overlay-value" ng-show="elevator.innerWidth"  style="left: 76%; top: 74%;">{{ elevator.innerWidth }} cm</span>
+                <span class="overlay-value" ng-show="elevator.innerHeight" style="left: 58%; top: 44%;">{{ elevator.innerHeight }} cm</span>
+                <span class="overlay-value" ng-show="elevator.innerDepth"  style="left: 58%; top: 93%;">{{ elevator.innerDepth }} cm</span>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+
+            <!-- 商品搜尋 -->
+            <div class="mb-3 product-autocomplete">
+                <label style="color: #000;">選擇商品：</label>
+                <div class="input-group">
+                    <input type="text" class="form-control"
+                           ng-model="productKeyword"
+                           ng-keydown="$event.keyCode === 13 && productKeyword && !selectedProduct && searchNow()"
+                           ng-blur="onProductInputBlur()"
+                           ng-readonly="selectedProduct"
+                           placeholder="請輸入 SKU">
+                    <div class="input-group-append">
+                        <button class="btn btn-secondary" type="button"
+                                ng-click="searchNow()"
+                                ng-disabled="!productKeyword || searching || selectedProduct">
+                            <i class="fa fa-spinner fa-spin" ng-show="searching"></i>
+                            <i class="fa fa-search" ng-show="!searching"></i>
+                        </button>
+                    </div>
+                    <div class="input-group-append" ng-show="selectedProduct">
+                        <button class="btn btn-outline-secondary" type="button" ng-click="clearProduct()">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="dropdown-list" ng-show="showDropdown || (searched && !searching && filteredProducts.length === 0 && !selectedProduct)">
+                    <div class="dropdown-item text-muted" ng-show="filteredProducts.length === 0 && !searching">
+                        查無商品
+                    </div>
+                    <div class="dropdown-item"
+                         ng-repeat="p in filteredProducts"
+                         ng-mousedown="selectProduct(p)">
+                        {{ p.ItemCode }} - {{ p.ItemName }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選擇後：顯示外箱尺寸 -->
+            <div class="mb-3" ng-show="selectedProduct">
+                <div class="d-flex align-items-center mb-2">
+                    <strong style="color:#000;">外箱尺寸</strong>
+                    <span ng-show="dimSource === 'sheet'"
+                          class="badge badge-success dim-source-badge">
+                        倉庫實測外箱尺寸
+                    </span>
+                    <span ng-show="dimSource === 'none'"
+                          class="badge badge-warning dim-source-badge">
+                        無法解析尺寸，請手動輸入
+                    </span>
+                </div>
+
+                <p ng-show="dimSource === 'sheet' && sheetBoxCount > 1"
+                   class="text-muted" style="font-size:12px;">
+                    此商品共 {{ sheetBoxCount }} 箱
+                </p>
+
+                <table class="table table-sm table-bordered" style="color:#000;" ng-show="dimSource === 'sheet'">
+                    <thead class="thead-light">
+                        <tr>
+                            <th ng-show="sheetBoxCount > 1">箱別</th>
+                            <th>長 (cm)</th><th>寬 (cm)</th><th>高 (cm)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="box in selectedProduct.boxes">
+                            <td ng-show="sheetBoxCount > 1">{{ box.label }}</td>
+                            <td>{{ box.length }}</td>
+                            <td>{{ box.width }}</td>
+                            <td>{{ box.height }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div ng-show="dimSource === 'none'">
+                    <div class="measure-row">
+                        <label>外箱長度：</label>
+                        <input type="number" class="form-control" ng-model="selectedProduct.boxes[0].length" placeholder="cm">
+                    </div>
+                    <div class="measure-row">
+                        <label>外箱寬度：</label>
+                        <input type="number" class="form-control" ng-model="selectedProduct.boxes[0].width" placeholder="cm">
+                    </div>
+                    <div class="measure-row">
+                        <label>外箱高度：</label>
+                        <input type="number" class="form-control" ng-model="selectedProduct.boxes[0].height" placeholder="cm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 電梯尺寸輸入 -->
+            <div class="elevator-inputs">
+                <div class="measure-row">
+                    <span class="measure-circle">A</span>
+                    <label>電梯門口寬度：</label>
+                    <input type="number" class="form-control" ng-model="elevator.doorWidth" placeholder="cm">
+                </div>
+                <div class="measure-row">
+                    <span class="measure-circle">B</span>
+                    <label>電梯門口高度：</label>
+                    <input type="number" class="form-control" ng-model="elevator.doorHeight" placeholder="cm">
+                </div>
+                <div class="measure-row">
+                    <span class="measure-circle">C</span>
+                    <label>電梯內部寬度：</label>
+                    <input type="number" class="form-control" ng-model="elevator.innerWidth" placeholder="cm">
+                </div>
+                <div class="measure-row">
+                    <span class="measure-circle">D</span>
+                    <label>電梯內部高度：</label>
+                    <input type="number" class="form-control" ng-model="elevator.innerHeight" placeholder="cm">
+                </div>
+                <div class="measure-row">
+                    <span class="measure-circle">E</span>
+                    <label>電梯內部深度：</label>
+                    <input type="number" class="form-control" ng-model="elevator.innerDepth" placeholder="cm">
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-info" ng-click="calculate()">計算</button>
+                </div>
+            </div>
+
+            <!-- 計算結果 -->
+            <div class="mt-3" ng-show="result.calculated">
+                <div class="alert text-center" style="font-size: 1.5rem; font-weight: bold;"
+                     ng-class="{'alert-success': result.canDeliverAll, 'alert-danger': !result.canDeliverAll}">
+                    <span ng-show="result.canDeliverAll"  style="color: #155724;">此商品可以被搬運</span>
+                    <span ng-show="!result.canDeliverAll" style="color: #721c24;">此商品無法被搬運</span>
+                </div>
+                <div class="card" ng-repeat="r in result.boxResults">
+                    <div class="card-body" style="color: #000;">
+                        <strong ng-show="r.label" ng-class="{'text-success': r.canDeliver, 'text-danger': !r.canDeliver}">{{ r.label }}：</strong>
+                        <span ng-class="{'text-success': r.canDeliver, 'text-danger': !r.canDeliver}">{{ r.resultMsg }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3" ng-show="result && !result.calculated">
+                <div class="alert alert-warning">{{ result.message }}</div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<br><br>
+
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p style="margin-top: 0.5rem;">©Copyright 2016 by MR. LIVING. All Rights Reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
