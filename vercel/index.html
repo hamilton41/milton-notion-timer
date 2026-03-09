@@ -5,7 +5,7 @@
     <link rel="icon" type="image/x-icon" href="https://www.mrliving.com.tw/media/favicon/stores/1/logo_7.jpg">
     <link rel="shortcut icon" type="image/x-icon" href="https://www.mrliving.com.tw/media/favicon/stores/1/logo_7.jpg">
 
-    <link rel="stylesheet" href="./style.css" type="text/css"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -282,31 +282,39 @@
                 };
             }
 
-            var A = e.doorWidth;
-            var C = e.innerHeight;
-            var D = box.width;
-            var E = box.height;
-            var F = box.length;
+            var l = box.length, w = box.width, h = box.height;
 
-            var diag1 = Math.sqrt(E * E + D * D);
-            if (C > diag1) {
-                return {
-                    canDeliver: true, method: 'Tilt1',
-                    resultMsg: '比電梯門高，需要先平躺推進電梯，再在裡面立起來（電梯內高 ' + C + 'cm，立起來需要 ' + Math.round(diag1) + 'cm）'
-                };
+            // 列出箱子 3 個面，每個面搭配對角線與第三邊
+            var tilts = [
+                { diag: Math.sqrt(w * w + h * h), third: l },
+                { diag: Math.sqrt(l * l + h * h), third: w },
+                { diag: Math.sqrt(l * l + w * w), third: h }
+            ];
+
+            // 從對角線最大的開始試（較嚴格的先判斷）
+            tilts.sort(function(a, b) { return b.diag - a.diag; });
+
+            for (var i = 0; i < tilts.length; i++) {
+                var t = tilts[i];
+                if (t.third <= e.doorWidth && e.innerHeight > t.diag) {
+                    return {
+                        canDeliver: true, method: 'Tilt',
+                        resultMsg: '比電梯門高，需要先平躺推進電梯，再在裡面立起來（電梯內高 ' + e.innerHeight + 'cm，立起來需要 ' + Math.round(t.diag) + 'cm）'
+                    };
+                }
             }
 
-            var diag2 = Math.sqrt(F * F + D * D);
-            if (A > D && C > diag2) {
-                return {
-                    canDeliver: true, method: 'Tilt2',
-                    resultMsg: '比電梯門高，需要先平躺推進電梯，再換方向立起來（電梯內高 ' + C + 'cm，立起來需要 ' + Math.round(diag2) + 'cm）'
-                };
+            // 找出所有第三邊能過門口的方案，取最小對角線，告知需要多高
+            var validTilts = tilts.filter(function(t) { return t.third <= e.doorWidth; });
+            var minDiagMsg = '';
+            if (validTilts.length > 0) {
+                var minDiag = Math.min.apply(null, validTilts.map(function(t) { return t.diag; }));
+                minDiagMsg = '，電梯內高至少需要 ' + Math.ceil(minDiag) + 'cm 才能搬進去（目前 ' + e.innerHeight + 'cm）';
             }
 
             return {
                 canDeliver: false, method: 'Fail',
-                resultMsg: '比電梯門高，平躺推進去後電梯內部也不夠高，沒辦法立起來'
+                resultMsg: '比電梯門高，平躺推進去後電梯內部也不夠高，沒辦法立起來' + minDiagMsg
             };
         }
 
@@ -348,7 +356,7 @@
     <div class="row mt-3">
         <div class="col-md-6">
             <div class="elevator-img-wrapper">
-                <img src="./assets/imgs/電梯測量圖.jpg" class="img-fluid" alt="電梯測量圖">
+                <img src="assets/imgs/電梯測量圖.jpg" class="img-fluid" alt="電梯測量圖">
                 <span class="overlay-value" ng-show="elevator.doorWidth"  style="left: 13%; top: 16%;">{{ elevator.doorWidth }} cm</span>
                 <span class="overlay-value" ng-show="elevator.doorHeight" style="left: 0; top: 71%;">{{ elevator.doorHeight }} cm</span>
                 <span class="overlay-value" ng-show="elevator.innerWidth"  style="left: 76%; top: 74%;">{{ elevator.innerWidth }} cm</span>
