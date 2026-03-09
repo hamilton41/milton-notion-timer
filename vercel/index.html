@@ -276,18 +276,31 @@
             }
 
             if (dims[2] <= e.doorHeight) {
-                // 直直推進去：底部最小邊進深度
-                if (dims[0] <= e.innerDepth) {
+                // 直直推進去：底部兩邊（dims[0] × dims[1]）分別對應電梯寬度與深度
+                // 有兩種方向，只要有一種能進就算可以
+                var optA = dims[0] <= e.innerWidth && dims[1] <= e.innerDepth;
+                var optB = dims[1] <= e.innerWidth && dims[0] <= e.innerDepth;
+
+                if (optA || optB) {
                     return {
                         canDeliver: true, method: 'DoorHeight',
                         resultMsg: '高度（' + dims[2] + 'cm）低於電梯門高（' + e.doorHeight + 'cm），可以正常搬進去'
                     };
-                } else {
+                }
+
+                // 兩個方向都不行，判斷是寬度還是深度的問題
+                if (dims[0] > e.innerWidth && dims[1] > e.innerWidth) {
                     return {
-                        canDeliver: false, method: 'DepthFail',
-                        resultMsg: '高度雖然夠，但箱子太深，電梯深度不足（需要 ' + dims[0] + 'cm，電梯深度 ' + e.innerDepth + 'cm）'
+                        canDeliver: false, method: 'WidthFail',
+                        resultMsg: '高度雖然夠，但電梯內部太窄，箱子進不去（電梯內寬 ' + e.innerWidth + 'cm，箱子至少需要 ' + dims[0] + 'cm）'
                     };
                 }
+                // 只有一個方向被寬度限制，另一個方向被深度卡住
+                var depthNeededStraight = (dims[0] <= e.innerWidth) ? dims[1] : dims[0];
+                return {
+                    canDeliver: false, method: 'DepthFail',
+                    resultMsg: '高度雖然夠，但電梯太淺放不進去（電梯深度 ' + e.innerDepth + 'cm，至少需要 ' + depthNeededStraight + 'cm）'
+                };
             }
 
             var l = box.length, w = box.width, h = box.height;
@@ -305,8 +318,8 @@
             for (var i = 0; i < tilts.length; i++) {
                 var t = tilts[i];
 
-                // 條件1：第三邊能過門口寬
-                if (t.third > e.doorWidth) continue;
+                // 條件1：第三邊能過門口寬，且塞得進電梯內部寬度
+                if (t.third > e.doorWidth || t.third > e.innerWidth) continue;
 
                 // 條件2：立起來過程中最突出的瞬間（對角線垂直地面），電梯深度要夠
                 var depthNeeded = 2 * t.e1 * t.e2 / t.diag;
@@ -322,7 +335,7 @@
             }
 
             // 分析失敗原因
-            var doorWidthOkTilts = tilts.filter(function(t) { return t.third <= e.doorWidth; });
+            var doorWidthOkTilts = tilts.filter(function(t) { return t.third <= e.doorWidth && t.third <= e.innerWidth; });
             var depthOkTilts = doorWidthOkTilts.filter(function(t) {
                 return e.innerDepth >= 2 * t.e1 * t.e2 / t.diag;
             });
