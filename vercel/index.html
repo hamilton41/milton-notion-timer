@@ -276,10 +276,18 @@
             }
 
             if (dims[2] <= e.doorHeight) {
-                return {
-                    canDeliver: true, method: 'DoorHeight',
-                    resultMsg: '高度（' + dims[2] + 'cm）低於電梯門高（' + e.doorHeight + 'cm），可以正常搬進去'
-                };
+                // 直直推進去：底部最小邊進深度
+                if (dims[0] <= e.innerDepth) {
+                    return {
+                        canDeliver: true, method: 'DoorHeight',
+                        resultMsg: '高度（' + dims[2] + 'cm）低於電梯門高（' + e.doorHeight + 'cm），可以正常搬進去'
+                    };
+                } else {
+                    return {
+                        canDeliver: false, method: 'DepthFail',
+                        resultMsg: '高度雖然夠，但箱子太深，電梯深度不足（需要 ' + dims[0] + 'cm，電梯深度 ' + e.innerDepth + 'cm）'
+                    };
+                }
             }
 
             var l = box.length, w = box.width, h = box.height;
@@ -296,7 +304,16 @@
 
             for (var i = 0; i < tilts.length; i++) {
                 var t = tilts[i];
-                if (t.third <= e.doorWidth && e.innerHeight > t.diag) {
+
+                // 條件1：第三邊能過門口寬
+                if (t.third > e.doorWidth) continue;
+
+                // 條件2：立起來過程中最突出的瞬間（對角線垂直地面），電梯深度要夠
+                var depthNeeded = 2 * t.e1 * t.e2 / t.diag;
+                if (e.innerDepth < depthNeeded) continue;
+
+                // 條件3：電梯內高夠讓箱子立起來
+                if (e.innerHeight > t.diag) {
                     return {
                         canDeliver: true, method: 'Tilt',
                         resultMsg: '比電梯門高，需要先平躺推進電梯，再在裡面立起來（電梯內高 ' + e.innerHeight + 'cm，立起來需要 ' + Math.round(t.diag) + 'cm）'
