@@ -1,0 +1,53 @@
+footer {
+    bottom: 0;
+    z-index: 1030;
+    padding: 10px 50px;
+    background: #666;
+    color: white;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+}
+
+.box {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+.box .header {
+    flex: 0 1 auto;
+}
+
+.box .content {
+    flex: 1 1 auto;
+}
+
+.box .footer {
+    flex: 0 1 40px;
+}
+
+p.subject {
+    font-weight: bold;
+    font-size: x-large;
+    margin-left: 1rem;
+}
+
+#content {
+    background: #ededed;
+    background: linear-gradient(to bottom, #ededed 0%, #ffffff 100%);
+}
+
+table tr th {
+    background: #345d68;
+    color: white;
+    text-align: left;
+}
+
+@media only screen and (min-width: 1200px) {
+    .container {
+        max-width: 1380px !important;
+    }
+}

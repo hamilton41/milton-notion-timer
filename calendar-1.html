@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Calendar</title>
+
+  <!-- Pixel fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ink: #0f0f1a;
+      --panel: #1d1d30;
+      --accent: #40c9ff;
+      --accent-2: #f8c537;
+      --glow: rgba(64, 201, 255, 0.35);
+      --text-main: #f6f7fb;
+      --text-sub: #c7ccd8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      font-family: 'Press Start 2P', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .pixel-shell {
+      position: relative;
+      padding: 26px 26px 30px;
+      background: var(--panel);
+      color: var(--text-main);
+      box-shadow:
+        0 0 0 4px var(--ink),
+        0 0 0 8px var(--accent),
+        0 10px 0 8px var(--ink),
+        0 0 30px 10px var(--glow);
+      image-rendering: pixelated;
+      text-align: center;
+      max-width: 320px;
+      width: 92vw;
+    }
+
+    /* Pixel corner squares */
+    .pixel-shell::before,
+    .pixel-shell::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 4px var(--ink);
+    }
+
+    .pixel-shell::before {
+      top: 10px;
+      left: 10px;
+    }
+
+    .pixel-shell::after {
+      bottom: 10px;
+      right: 10px;
+    }
+
+    .label {
+      letter-spacing: 1px;
+      font-size: 0.8rem;
+      color: var(--accent-2);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .date {
+      font-family: 'VT323', 'Press Start 2P', monospace;
+      font-size: 4.2rem;
+      letter-spacing: 2px;
+      margin: 0 0 8px;
+      text-shadow: 0 0 8px var(--glow);
+    }
+
+    .weekday {
+      font-size: 1.3rem;
+      color: var(--text-sub);
+      letter-spacing: 1px;
+    }
+
+    /* Subtle scanline effect */
+    .scanline {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.08)
+        ),
+        linear-gradient(
+          rgba(0, 0, 0, 0.22) 1px,
+          transparent 1px
+        );
+      background-size: 100% 100%, 100% 4px;
+      mix-blend-mode: soft-light;
+      opacity: 0.55;
+    }
+
+    @media (max-width: 480px) {
+      .pixel-shell {
+        padding: 22px 18px 26px;
+      }
+      .date {
+        font-size: 3.4rem;
+      }
+      .weekday {
+        font-size: 1.15rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="pixel-shell" aria-live="polite">
+    <div class="label">今日日期</div>
+    <div class="date" id="dateText">-- / --</div>
+    <div class="weekday" id="weekdayText">------</div>
+    <div class="scanline"></div>
+  </div>
+
+  <script>
+    const dateText = document.getElementById('dateText');
+    const weekdayText = document.getElementById('weekdayText');
+
+    function renderDate() {
+      const now = new Date();
+      // e.g. "1月24日"
+      const dateString = now.toLocaleDateString('zh-TW', {
+        month: 'numeric',
+        day: 'numeric'
+      });
+      // e.g. "星期六"
+      const weekdayString = now.toLocaleDateString('zh-TW', {
+        weekday: 'long'
+      });
+
+      dateText.textContent = dateString;
+      weekdayText.textContent = weekdayString;
+    }
+
+    renderDate();
+
+    // Refresh at midnight: check every minute
+    setInterval(() => {
+      const minutes = new Date().getMinutes();
+      const seconds = new Date().getSeconds();
+      if (minutes === 0 && seconds < 2) {
+        renderDate();
+      }
+    }, 1000 * 30);
+  </script>
+</body>
+</html>
