@@ -294,9 +294,9 @@
 
             // 列出箱子 3 個面，每個面搭配對角線與第三邊
             var tilts = [
-                { diag: Math.sqrt(w * w + h * h), third: l },
-                { diag: Math.sqrt(l * l + h * h), third: w },
-                { diag: Math.sqrt(l * l + w * w), third: h }
+                { e1: w, e2: h, diag: Math.sqrt(w * w + h * h), third: l },
+                { e1: l, e2: h, diag: Math.sqrt(l * l + h * h), third: w },
+                { e1: l, e2: w, diag: Math.sqrt(l * l + w * w), third: h }
             ];
 
             // 從對角線最大的開始試（較嚴格的先判斷）
