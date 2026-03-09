@@ -321,11 +321,27 @@
                 }
             }
 
-            // 找出所有第三邊能過門口的方案，取最小對角線，告知需要多高
-            var validTilts = tilts.filter(function(t) { return t.third <= e.doorWidth; });
+            // 分析失敗原因
+            var doorWidthOkTilts = tilts.filter(function(t) { return t.third <= e.doorWidth; });
+            var depthOkTilts = doorWidthOkTilts.filter(function(t) {
+                return e.innerDepth >= 2 * t.e1 * t.e2 / t.diag;
+            });
+
+            // 有方案第三邊過門口，但全被深度卡住
+            if (doorWidthOkTilts.length > 0 && depthOkTilts.length === 0) {
+                var minDepth = Math.min.apply(null, doorWidthOkTilts.map(function(t) {
+                    return Math.ceil(2 * t.e1 * t.e2 / t.diag);
+                }));
+                return {
+                    canDeliver: false, method: 'DepthFail',
+                    resultMsg: '比電梯門高，平躺推進去後電梯太淺，沒辦法在裡面立起來（電梯深度至少需要 ' + minDepth + 'cm，目前 ' + e.innerDepth + 'cm）'
+                };
+            }
+
+            // 深度夠但高度不夠
             var minDiagMsg = '';
-            if (validTilts.length > 0) {
-                var minDiag = Math.min.apply(null, validTilts.map(function(t) { return t.diag; }));
+            if (depthOkTilts.length > 0) {
+                var minDiag = Math.min.apply(null, depthOkTilts.map(function(t) { return t.diag; }));
                 minDiagMsg = '，電梯內高至少需要 ' + Math.ceil(minDiag) + 'cm 才能搬進去（目前 ' + e.innerHeight + 'cm）';
             }
 
