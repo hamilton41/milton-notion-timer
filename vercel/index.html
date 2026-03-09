@@ -276,10 +276,11 @@
             }
 
             if (dims[2] <= e.doorHeight) {
-                // 直直推進去：底部兩邊（dims[0] × dims[1]）分別對應電梯寬度與深度
-                // 有兩種方向，只要有一種能進就算可以
-                var optA = dims[0] <= e.innerWidth && dims[1] <= e.innerDepth;
-                var optB = dims[1] <= e.innerWidth && dims[0] <= e.innerDepth;
+                // 側邊必須同時通過門口寬 & 電梯內寬，另一邊進深度
+                var optAWidthOk = dims[0] <= e.doorWidth && dims[0] <= e.innerWidth;
+                var optBWidthOk = dims[1] <= e.doorWidth && dims[1] <= e.innerWidth;
+                var optA = optAWidthOk && dims[1] <= e.innerDepth;
+                var optB = optBWidthOk && dims[0] <= e.innerDepth;
 
                 if (optA || optB) {
                     return {
@@ -288,15 +289,17 @@
                     };
                 }
 
-                // 兩個方向都不行，判斷是寬度還是深度的問題
-                if (dims[0] > e.innerWidth && dims[1] > e.innerWidth) {
+                if (!optAWidthOk && !optBWidthOk) {
                     return {
                         canDeliver: false, method: 'WidthFail',
                         resultMsg: '高度雖然夠，但電梯內部太窄，箱子進不去（電梯內寬 ' + e.innerWidth + 'cm，箱子至少需要 ' + dims[0] + 'cm）'
                     };
                 }
-                // 只有一個方向被寬度限制，另一個方向被深度卡住
-                var depthNeededStraight = (dims[0] <= e.innerWidth) ? dims[1] : dims[0];
+
+                // 只有一個方向能進（寬度），但深度不夠
+                var depthNeededStraight = (optAWidthOk && optBWidthOk) ? dims[0]
+                                        : optAWidthOk ? dims[1]
+                                        : dims[0];
                 return {
                     canDeliver: false, method: 'DepthFail',
                     resultMsg: '高度雖然夠，但電梯太淺放不進去（電梯深度 ' + e.innerDepth + 'cm，至少需要 ' + depthNeededStraight + 'cm）'
